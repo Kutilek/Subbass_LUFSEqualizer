@@ -19,8 +19,7 @@ struct ChainSettings
     float highCutFreq{ 100.f };
     float saturationAmount{ 0.f };
     bool highCutEnabled{ true };
-    bool compressorBypassed{ true };
-    bool saturationEnabled{ true };
+    bool saturationEnabled{ false };
     bool normalizationEnabled{ true };
 	float subEqualizer{ 1.f };
 };

@@ -22,6 +22,38 @@ struct CustomRotarySlider : juce::Slider
     }
 };
 
+struct CustomToggleButton : juce::TextButton
+{
+    CustomToggleButton(const juce::String& buttonText)
+        : juce::TextButton(buttonText)
+    {
+        setClickingTogglesState(true);
+
+        // Text colours
+        setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+        setColour(juce::TextButton::textColourOffId, juce::Colours::black);
+
+        // Start in OFF appearance
+        updateToggleColour();
+    }
+
+    void updateToggleColour()
+    {
+        if (getToggleState()) // EFFECT ENABLED
+        {
+            // ON = brighter
+            setColour(juce::TextButton::buttonColourId, juce::Colour::fromRGB(255, 140, 40));
+        }
+        else // EFFECT DISABLED
+        {
+            // OFF = darker
+            setColour(juce::TextButton::buttonColourId, juce::Colour::fromRGB(55, 55, 55));
+        }
+
+        repaint();
+    }
+};
+
 class Subbass_LUFSEqualizerAudioProcessorEditor  : public juce::AudioProcessorEditor
 {
 public:
@@ -37,31 +69,40 @@ private:
     // access the processor object that created it.
     Subbass_LUFSEqualizerAudioProcessor& audioProcessor;
 
-    juce::ToggleButton highCutButton;
-    juce::ToggleButton compressorButton;
-    juce::ToggleButton saturationButton;
-    juce::ToggleButton normalizeButton;
+    using APVTS = juce::AudioProcessorValueTreeState;
+    
+    // Sliders
+    using SliderAttachment = APVTS::SliderAttachment;
 
     CustomRotarySlider subBassEqualizerSlider;
     CustomRotarySlider saturationSlider;
     CustomRotarySlider inputGainSlider;
     CustomRotarySlider outputGainSlider;
 
-    using APVTS = juce::AudioProcessorValueTreeState;
-    using Attachment = APVTS::SliderAttachment;
+    SliderAttachment subBassEqualizerAttachment;
+    SliderAttachment saturationSliderAttachment;
+    SliderAttachment inputGainSliderAttachment;
+    SliderAttachment outputGainSliderAttachment;
 
-    Attachment subBassEqualizerAttachment;
-    Attachment saturationSliderAttachment;
-    Attachment inputGainSliderAttachment;
-    Attachment outputGainSliderAttachment;
+    // Toggles
+	using ButtonAttachment = APVTS::ButtonAttachment;
 
-    std::vector<juce::Component*> getComps();
+    CustomToggleButton highCutButton{ "High Cut" };
+    CustomToggleButton saturationButton{ "Saturate" };
+    CustomToggleButton normalizeButton{ "Normalize" };
 
+    ButtonAttachment highCutButtonAttachment;
+    ButtonAttachment saturationButtonAttachment;
+    ButtonAttachment normalizeButtonAttachment;
 
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> highCutAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> compressorButtonAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> saturationButtonAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> normalizeButtonAttachment;
+    // Labels
+    juce::Label subBassEqualizerLabel;
+    juce::Label saturationLabel;
+    juce::Label inputGainLabel;
+    juce::Label outputGainLabel;
+    juce::Label highCutLabel;
+    juce::Label saturationButtonLabel;
+    juce::Label normalizeLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessorEditor)
 };

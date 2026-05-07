@@ -395,8 +395,8 @@ bool Subbass_LUFSEqualizerAudioProcessor::hasEditor() const
 
 juce::AudioProcessorEditor* Subbass_LUFSEqualizerAudioProcessor::createEditor()
 {
-   // return new Subbass_LUFSEqualizerAudioProcessorEditor (*this);
-	return new juce::GenericAudioProcessorEditor(*this);
+    return new Subbass_LUFSEqualizerAudioProcessorEditor (*this);
+	//return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -435,7 +435,6 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.highCutEnabled = apvts.getRawParameterValue("HighCut Enabled")->load();
 
     settings.subEqualizer = apvts.getRawParameterValue("Sub Equalizer")->load();
-    settings.compressorBypassed = apvts.getRawParameterValue("COMP_BYPASS")->load();
     settings.saturationEnabled = apvts.getRawParameterValue("Saturation Enabled")->load();
     settings.saturationAmount = apvts.getRawParameterValue("Saturation Amount")->load();
     settings.normalizationEnabled = apvts.getRawParameterValue("Normalize Enabled")->load();
@@ -464,8 +463,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout Subbass_LUFSEqualizerAudioPr
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(100.f, 20000.f, 1.f, 0.5f), 100.f));
     layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Enabled", "HighCut Enabled", true));
-    layout.add(std::make_unique<juce::AudioParameterBool>("COMP_BYPASS", "COMP_BYPASS", true));
-    layout.add(std::make_unique<juce::AudioParameterBool>("Saturation Enabled", "Saturation Enabled", true));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Saturation Enabled", "Saturation Enabled", false));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Saturation Amount", "Saturation Amount", juce::NormalisableRange<float>(0.0f, 10.0f), 2.f));
     layout.add(std::make_unique<juce::AudioParameterBool>("Normalize Enabled", "Normalize Enabled", true));
 
