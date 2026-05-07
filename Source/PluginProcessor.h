@@ -33,6 +33,15 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 class Subbass_LUFSEqualizerAudioProcessor  : public juce::AudioProcessor
 {
 public:
+    float compressionAttackCoeff = 0.0f;
+    float compressionReleaseCoeff = 0.0f;
+    int compressionHoldSamples = 0;
+    int compressionHoldCounter = 0;
+    float compressionEnv = 0.0f;
+
+    juce::AudioBuffer<float> lowBandBuffer;
+    juce::AudioBuffer<float> highBandBuffer;
+
     //float sampleRate = 44100.0f;
 
     float env = 0.0f;
@@ -41,6 +50,8 @@ public:
     // coefficients
     float attackCoeff = 0.0f;
     float releaseCoeff = 0.0f;
+
+    float compressionGainSmoothed = 1.0f;
 
     // hold (sustain)
     int holdSamples = 0;
@@ -121,7 +132,14 @@ private:
 		HighCut,
 	};
 
+    using CrossoverFilter = juce::dsp::ProcessorChain<Filter, Filter>;
+
+    CrossoverFilter lowPassLeft, lowPassRight;
+    CrossoverFilter highPassLeft, highPassRight;
+
 	void applyLookaheadLimiter(juce::AudioBuffer<float>& buffer);
+    void applyCompressionCurve(juce::AudioBuffer<float>& buffer);
+    void applySaturationAndLimit(juce::AudioBuffer<float>& buffer);
 
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessor)
