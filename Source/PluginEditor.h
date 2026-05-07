@@ -76,12 +76,12 @@ private:
     using SliderAttachment = APVTS::SliderAttachment;
 
     CustomRotarySlider subBassEqualizerSlider;
-    CustomRotarySlider saturationSlider;
+    CustomRotarySlider crunchSlider;
     CustomRotarySlider inputGainSlider;
     CustomRotarySlider outputGainSlider;
 
     SliderAttachment subBassEqualizerAttachment;
-    SliderAttachment saturationSliderAttachment;
+    SliderAttachment crunchSliderAttachment;
     SliderAttachment inputGainSliderAttachment;
     SliderAttachment outputGainSliderAttachment;
 
@@ -98,7 +98,7 @@ private:
 
     // Labels
     juce::Label subBassEqualizerLabel;
-    juce::Label saturationLabel;
+    juce::Label crunchLabel;
     juce::Label inputGainLabel;
     juce::Label outputGainLabel;
 

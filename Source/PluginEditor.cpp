@@ -13,7 +13,7 @@
 Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEditor (Subbass_LUFSEqualizerAudioProcessor& p)
 	: AudioProcessorEditor(&p), audioProcessor(p),
     subBassEqualizerAttachment(audioProcessor.apvts, "Sub Equalizer", subBassEqualizerSlider),
-    saturationSliderAttachment(audioProcessor.apvts, "Saturation Amount", saturationSlider),
+    crunchSliderAttachment(audioProcessor.apvts, "Crunch Amount", crunchSlider),
 	inputGainSliderAttachment(audioProcessor.apvts, "Input Gain", inputGainSlider),
     outputGainSliderAttachment(audioProcessor.apvts, "Output Gain", outputGainSlider),
 	highCutButtonAttachment(audioProcessor.apvts, "HighCut Enabled", highCutButton),
@@ -26,17 +26,14 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
     addAndMakeVisible(normalizeButton);
     addAndMakeVisible(highCutButton);
     addAndMakeVisible(subBassEqualizerSlider);
-    addAndMakeVisible(saturationSlider); 
+    addAndMakeVisible(crunchSlider);
     addAndMakeVisible(outputGainSlider);
     addAndMakeVisible(limiterButton);
 
     addAndMakeVisible(inputGainLabel);
     addAndMakeVisible(subBassEqualizerLabel);
-    addAndMakeVisible(saturationLabel);
+    addAndMakeVisible(crunchLabel);
     addAndMakeVisible(outputGainLabel);
-    
-
-    
     
     setSize(600, 300);
 
@@ -44,8 +41,8 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
     subBassEqualizerLabel.setText("Sub Bass Equalization", juce::dontSendNotification);
     subBassEqualizerLabel.setJustificationType(juce::Justification::centred);
 
-    saturationLabel.setText("Saturation", juce::dontSendNotification);
-    saturationLabel.setJustificationType(juce::Justification::centred);
+    crunchLabel.setText("CRUNCH!!!", juce::dontSendNotification);
+    crunchLabel.setJustificationType(juce::Justification::centred);
 
     inputGainLabel.setText("Input Gain", juce::dontSendNotification);
     inputGainLabel.setJustificationType(juce::Justification::centred);
@@ -74,7 +71,7 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
 
     // Configure labels (they will be shown under knobs)
     subBassEqualizerLabel.setJustificationType(juce::Justification::centred);
-    saturationLabel.setJustificationType(juce::Justification::centred);
+    crunchLabel.setJustificationType(juce::Justification::centred);
     inputGainLabel.setJustificationType(juce::Justification::centred);
     outputGainLabel.setJustificationType(juce::Justification::centred);
 }
@@ -150,8 +147,8 @@ void Subbass_LUFSEqualizerAudioProcessorEditor::resized()
 
     // Saturation (large slider)
     juce::Rectangle<int> r_sat = sliderRow.removeFromLeft(largeW).reduced(6);
-    saturationSlider.setBounds(r_sat);
-    saturationLabel.setBounds(r_sat.getX(), r_sat.getBottom() + 4, r_sat.getWidth(), labelH);
+    crunchSlider.setBounds(r_sat);
+    crunchLabel.setBounds(r_sat.getX(), r_sat.getBottom() + 4, r_sat.getWidth(), labelH);
 
     // OutputGain (small slider)
     juce::Rectangle<int> r_out = sliderRow.reduced(6);
@@ -163,5 +160,5 @@ void Subbass_LUFSEqualizerAudioProcessorEditor::resized()
     ensureMin(inputGainSlider, 40, 40);
     ensureMin(outputGainSlider, 40, 40);
     ensureMin(subBassEqualizerSlider, 80, 80);
-    ensureMin(saturationSlider, 80, 80);
+    ensureMin(crunchSlider, 80, 80);
 }

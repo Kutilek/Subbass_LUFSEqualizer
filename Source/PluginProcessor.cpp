@@ -107,8 +107,7 @@ void Subbass_LUFSEqualizerAudioProcessor::prepareToPlay (double sampleRate, int 
 	auto chainSettings = getChainSettings(apvts);
 
     // Calculate lookahead samples once
-    const float lookaheadMs = 5.0f;
-    lookaheadSamples = static_cast<int>(lookaheadMs * 0.001f * sampleRate);
+    lookaheadSamples = static_cast<int>(LOOKAHEAD_MS * 0.001f * sampleRate);
 
     // Pre-allocate lookahead buffer - do this in prepareToPlay, not processBlock
     lookaheadBuffer.setSize(2, lookaheadSamples);
@@ -121,9 +120,13 @@ void Subbass_LUFSEqualizerAudioProcessor::prepareToPlay (double sampleRate, int 
     leftChain.setBypassed<ChainPositions::HighCut>(!chainSettings.highCutEnabled);
     rightChain.setBypassed<ChainPositions::HighCut>(!chainSettings.highCutEnabled);
 
-	auto lowShelfCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowShelf(sampleRate, chainSettings.lowShelfFreq, chainSettings.lowShelfQuality, juce::Decibels::decibelsToGain(chainSettings.lowShelfGainInDecibels));
-	auto peak0Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate, chainSettings.peakFreq0, chainSettings.peakQuality0, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels0));
-	auto peak1Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(sampleRate, chainSettings.peakFreq1, chainSettings.peakQuality1, juce::Decibels::decibelsToGain(chainSettings.peakGainInDecibels1));
+    float lowShelfEqualize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, LOW_SHELF_GAIN);
+    float peak0Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, PEAK0_GAIN);
+    float peak1Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, PEAK1_GAIN);
+
+    auto lowShelfCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowShelf(getSampleRate(), LOW_SHELF_FREQ, LOW_SHELF_QUALITY, juce::Decibels::decibelsToGain(lowShelfEqualize));
+    auto peak0Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), PEAK0_FREQ, PEAK0_QUALITY, juce::Decibels::decibelsToGain(peak0Equalize));
+    auto peak1Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), PEAK1_FREQ, PEAK1_QUALITY, juce::Decibels::decibelsToGain(peak1Equalize));
     auto highCut = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(100.f, sampleRate, 8);
 
 	*leftChain.get<ChainPositions::LowShelf>().coefficients = *lowShelfCoefficients;
@@ -146,10 +149,6 @@ void Subbass_LUFSEqualizerAudioProcessor::prepareToPlay (double sampleRate, int 
     *rightHighCut.get<1>().coefficients = *highCut[1];
     *rightHighCut.get<2>().coefficients = *highCut[2];
     *rightHighCut.get<3>().coefficients = *highCut[3];
-
-    float attackMs = 2.0f;
-    float releaseMs = 85.0f;
-    float sustainMs = 53.0f;
 }
 
 void Subbass_LUFSEqualizerAudioProcessor::releaseResources()
@@ -189,7 +188,7 @@ void Subbass_LUFSEqualizerAudioProcessor::applyLookaheadLimiter(juce::AudioBuffe
 {
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
-    const float ceiling = juce::Decibels::decibelsToGain(-12.0f);
+    const float ceiling = juce::Decibels::decibelsToGain(NORMALIZATION_CEILING_DB);
 
     // Build combined buffer: [lookahead history | current buffer]
     for (int ch = 0; ch < numChannels; ++ch)
@@ -229,16 +228,21 @@ void Subbass_LUFSEqualizerAudioProcessor::applyLookaheadLimiter(juce::AudioBuffe
         lookaheadBuffer.copyFrom(ch, 0, combinedBuffer, ch, numSamples, lookaheadSamples);
 }
 
+void Subbass_LUFSEqualizerAudioProcessor::applyEqualizationChain(juce::AudioBuffer<float>& buffer)
+{
+
+}
+
 void Subbass_LUFSEqualizerAudioProcessor::applySaturation(juce::AudioBuffer<float>& buffer)
 {
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
     auto chainSettings = getChainSettings(apvts);
 
-    const float gainAmount = juce::Decibels::decibelsToGain(chainSettings.saturationAmount);
-    const float softCeiling = juce::Decibels::decibelsToGain(-0.1f);
-    const float hardCeiling = juce::Decibels::decibelsToGain(-0.1f);
-    const float fixedDrive = 5.0f;
+    const float gainAmount = juce::Decibels::decibelsToGain(chainSettings.crunchAmount);
+    const float softCeiling = juce::Decibels::decibelsToGain(SOFT_CEILING_DB);
+    const float hardCeiling = juce::Decibels::decibelsToGain(HARD_CEILING_DB);
+    const float fixedDrive = SATURATION_DRIVE + gainAmount * 0.1f;
 
     for (int ch = 0; ch < numChannels; ++ch)
     {
@@ -250,18 +254,18 @@ void Subbass_LUFSEqualizerAudioProcessor::applySaturation(juce::AudioBuffer<floa
             if (std::abs(data[i]) > softCeiling)
             {
                 float saturated = std::tanh(data[i] * fixedDrive) / std::tanh(fixedDrive);
-                float blend = chainSettings.saturationAmount / 10.0f;
+                float blend = gainAmount / 10.0f;
                 data[i] = data[i] * (1.0f - blend) + saturated * blend;
             }
 
-            data[i] = juce::jlimit(-hardCeiling, hardCeiling, data[i]);
+          //  data[i] = juce::jlimit(-hardCeiling, hardCeiling, data[i]);
         }
     }
 }
 
 void Subbass_LUFSEqualizerAudioProcessor::applyLimiter(juce::AudioBuffer<float>& buffer)
 {
-    const float ceiling = juce::Decibels::decibelsToGain(-0.1f);
+    const float ceiling = juce::Decibels::decibelsToGain(HARD_CEILING_DB);
 
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
@@ -293,34 +297,34 @@ void Subbass_LUFSEqualizerAudioProcessor::processBlock (juce::AudioBuffer<float>
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
 
+    //Get Chain Settings
     auto chainSettings = getChainSettings(apvts);
 
-    float knobInputGain = juce::Decibels::decibelsToGain(chainSettings.inputGainInDecibels);
+
+	/// 0. Apply input gain
+    float inputGain = juce::Decibels::decibelsToGain(chainSettings.inputGainInDecibels);
     for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-        buffer.applyGain(ch, 0, buffer.getNumSamples(), knobInputGain);
+        buffer.applyGain(ch, 0, buffer.getNumSamples(), inputGain);
 
 
-    // 1. Apply lookahead limiter to normalize to -12dBFS
+    /// 1. Apply lookahead limiter to normalize to -12dBFS
     if (chainSettings.normalizationEnabled)
         applyLookaheadLimiter(buffer);
 
 
-
-    // 2. Process through DSP chain (InputGain, EQ filters, OutputGain)
-    // This is where your EQ shapes the frequency balance
-
-    // Example mapping (you define the curve)
-    float lowShelfEqualize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, 15.2f);
-    float peak0Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, -0.8f);
-    float peak1Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, -0.1f);
+    /// 2. Process through DSP chain (EQ Filters)
+    // SubEqualizer Curve
+    float lowShelfEqualize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, LOW_SHELF_GAIN);
+    float peak0Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, PEAK0_GAIN);
+    float peak1Equalize = juce::jmap(chainSettings.subEqualizer, 0.0f, 1.0f, .0f, PEAK1_GAIN);
 
     leftChain.setBypassed<ChainPositions::HighCut>(!chainSettings.highCutEnabled);
     rightChain.setBypassed<ChainPositions::HighCut>(!chainSettings.highCutEnabled);
 
-    auto lowShelfCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowShelf(getSampleRate(), chainSettings.lowShelfFreq, chainSettings.lowShelfQuality, juce::Decibels::decibelsToGain(lowShelfEqualize));
-    auto peak0Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), chainSettings.peakFreq0, chainSettings.peakQuality0,  juce::Decibels::decibelsToGain(peak0Equalize));
-    auto peak1Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), chainSettings.peakFreq1, chainSettings.peakQuality1,  juce::Decibels::decibelsToGain(peak1Equalize));
-    auto highCut = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(100.f, getSampleRate(), 8);
+    auto lowShelfCoefficients = juce::dsp::IIR::Coefficients<float>::makeLowShelf(getSampleRate(), LOW_SHELF_FREQ, LOW_SHELF_QUALITY, juce::Decibels::decibelsToGain(lowShelfEqualize));
+    auto peak0Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), PEAK0_FREQ, PEAK0_QUALITY, juce::Decibels::decibelsToGain(peak0Equalize));
+    auto peak1Coefficients = juce::dsp::IIR::Coefficients<float>::makePeakFilter(getSampleRate(), PEAK1_FREQ, PEAK1_QUALITY, juce::Decibels::decibelsToGain(peak1Equalize));
+    auto highCut = juce::dsp::FilterDesign<float>::designIIRLowpassHighOrderButterworthMethod(HIGH_CUT_FREQ, getSampleRate(), 8);
 
     *leftChain.get<ChainPositions::LowShelf>().coefficients = *lowShelfCoefficients;
     *leftChain.get<ChainPositions::Peak0>().coefficients = *peak0Coefficients;
@@ -351,55 +355,25 @@ void Subbass_LUFSEqualizerAudioProcessor::processBlock (juce::AudioBuffer<float>
     juce::dsp::ProcessContextReplacing<float> leftContext(leftBlock);
     juce::dsp::ProcessContextReplacing<float> rightContext(rightBlock);
 
-    // In processBlock, before leftChain.process():
-
-// Find if there is signal in this buffer
-    float bufferPeak = 0.0f;
-    for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-        for (int i = 0; i < buffer.getNumSamples(); ++i)
-            bufferPeak = std::max(bufferPeak, std::abs(buffer.getSample(ch, i)));
-
-    bool isPlaying = bufferPeak > 1e-6f;
-
-    // If transitioning from silence to signal, ramp gain up
-    if (isPlaying && !wasPlaying)
-        inputRampGain = 0.0f; // start from zero
-
-    if (isPlaying)
-    {
-        // Ramp up smoothly over the buffer
-        for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
-        {
-            for (int i = 0; i < buffer.getNumSamples(); ++i)
-            {
-                inputRampGain = std::min(1.0f, inputRampGain + 0.0001f);
-                buffer.setSample(ch, i, buffer.getSample(ch, i) * inputRampGain);
-            }
-        }
-    }
-
-    wasPlaying = isPlaying;
-
     leftChain.process(leftContext);
     rightChain.process(rightContext);
 
 
-    // 4. Saturation
-    if (chainSettings.saturationAmount > 0.01f)
+    /// 4. Saturation
+    if (chainSettings.crunchAmount > 0.01f)
         applySaturation(buffer);
 
+
+	/// 5. Limiter
     if (chainSettings.limiterEnabled)
 		applyLimiter(buffer);
 
-    // 5. Output gain
+
+    /// 6. Output gain
     float knobOutputGain = juce::Decibels::decibelsToGain(chainSettings.outputGainInDecibels);
     for (int ch = 0; ch < buffer.getNumChannels(); ++ch)
         buffer.applyGain(ch, 0, buffer.getNumSamples(), knobOutputGain);
-    
-
 }
-
-
 
 //==============================================================================
 bool Subbass_LUFSEqualizerAudioProcessor::hasEditor() const
@@ -410,7 +384,6 @@ bool Subbass_LUFSEqualizerAudioProcessor::hasEditor() const
 juce::AudioProcessorEditor* Subbass_LUFSEqualizerAudioProcessor::createEditor()
 {
     return new Subbass_LUFSEqualizerAudioProcessorEditor (*this);
-	//return new juce::GenericAudioProcessorEditor(*this);
 }
 
 //==============================================================================
@@ -433,27 +406,17 @@ void Subbass_LUFSEqualizerAudioProcessor::setStateInformation (const void* data,
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
 {
     ChainSettings settings;
-    settings.lowShelfFreq = apvts.getRawParameterValue("LowShelf Freq")->load();
-    settings.lowShelfGainInDecibels = apvts.getRawParameterValue("LowShelf Gain")->load();
-    settings.lowShelfQuality = apvts.getRawParameterValue("LowShelf Quality")->load();
-
-    settings.peakFreq0 = apvts.getRawParameterValue("Peak0 Freq")->load();
-    settings.peakGainInDecibels0 = apvts.getRawParameterValue("Peak0 Gain")->load();
-    settings.peakQuality0 = apvts.getRawParameterValue("Peak0 Quality")->load();
-
-    settings.peakFreq1 = apvts.getRawParameterValue("Peak1 Freq")->load();
-    settings.peakGainInDecibels1 = apvts.getRawParameterValue("Peak1 Gain")->load();
-    settings.peakQuality1 = apvts.getRawParameterValue("Peak1 Quality")->load();
-
-    settings.highCutFreq = apvts.getRawParameterValue("HighCut Freq")->load();
-    settings.highCutEnabled = apvts.getRawParameterValue("HighCut Enabled")->load();
-
-    settings.subEqualizer = apvts.getRawParameterValue("Sub Equalizer")->load();
-    settings.limiterEnabled = apvts.getRawParameterValue("Limiter Enabled")->load();
-    settings.saturationAmount = apvts.getRawParameterValue("Saturation Amount")->load();
-    settings.normalizationEnabled = apvts.getRawParameterValue("Normalize Enabled")->load();
 
     settings.inputGainInDecibels = apvts.getRawParameterValue("Input Gain")->load();
+
+    settings.normalizationEnabled = apvts.getRawParameterValue("Normalize Enabled")->load();
+
+    settings.subEqualizer = apvts.getRawParameterValue("Sub Equalizer")->load();
+    settings.highCutEnabled = apvts.getRawParameterValue("HighCut Enabled")->load();
+
+    settings.crunchAmount = apvts.getRawParameterValue("Crunch Amount")->load();
+    settings.limiterEnabled = apvts.getRawParameterValue("Limiter Enabled")->load();
+     
     settings.outputGainInDecibels = apvts.getRawParameterValue("Output Gain")->load();
 
     return settings;
@@ -463,28 +426,18 @@ juce::AudioProcessorValueTreeState::ParameterLayout Subbass_LUFSEqualizerAudioPr
 {
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowShelf Freq", "LowShelf Freq", juce::NormalisableRange<float>(20.f, 500.f, 1.f, 0.5f), 30.f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowShelf Gain", "LowShelf Gain", juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f), 15.2f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("LowShelf Quality", "LowShelf Quality", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.f), 0.66f));
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak0 Freq", "Peak0 Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.5f), 93.f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak0 Gain", "Peak0 Gain", juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f), -0.8f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak0 Quality", "Peak0 Quality", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.f), 0.15f));
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak1 Freq", "Peak1 Freq", juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.5f), 51.f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak1 Gain", "Peak1 Gain", juce::NormalisableRange<float>(-24.f, 24.f, 0.1f, 1.f), 0.f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Peak1 Quality", "Peak1 Quality", juce::NormalisableRange<float>(0.0f, 1.0f, 0.01f, 1.f), 0.24f));
-
-    layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(100.f, 20000.f, 1.f, 0.5f), 100.f));
-    layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Enabled", "HighCut Enabled", true));
-    layout.add(std::make_unique<juce::AudioParameterBool>("Limiter Enabled", "Limiter Enabled", false));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Saturation Amount", "Saturation Amount", juce::NormalisableRange<float>(0.0f, 10.0f), 2.f));
+    // Elements added in a way how they are processed in the chain
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Input Gain", "Input Gain", juce::NormalisableRange<float>(-60.f, 20.f, 0.1f, 0.5f), 0.f));
+    
     layout.add(std::make_unique<juce::AudioParameterBool>("Normalize Enabled", "Normalize Enabled", true));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Input Gain", "Input Gain", juce::NormalisableRange<float>(-60.f, 20.f, 0.1f, 1.f), 0.f));
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Output Gain", "Output Gain", juce::NormalisableRange<float>(-60.f, 20.f, 0.1f, 1.f), 0.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Sub Equalizer", "Sub Equalizer", juce::NormalisableRange<float>(0.0f, 1.0f), 1.f));
+    layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Enabled", "HighCut Enabled", true));
+    
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Crunch Amount", "Crunch Amount", juce::NormalisableRange<float>(0.0f, 20.0f), 0.f));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Limiter Enabled", "Limiter Enabled", false));
 
-    layout.add(std::make_unique<juce::AudioParameterFloat>("Sub Equalizer", "Sub Equalizer", juce::NormalisableRange<float>(0.0f, 1.0f),1.f));
+    layout.add(std::make_unique<juce::AudioParameterFloat>("Output Gain", "Output Gain", juce::NormalisableRange<float>(-60.f, 20.f, 0.1f, 0.5f), 0.f));
 
     return layout;
 }

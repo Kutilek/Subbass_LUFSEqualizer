@@ -12,16 +12,13 @@
 
 struct ChainSettings
 {
-	float inputGainInDecibels{ 0.f }, outputGainInDecibels{ 0.f };
-	float lowShelfFreq{ 30.f }, lowShelfGainInDecibels{ 11.9f }, lowShelfQuality{ 0.52f };
-    float peakFreq0{ 93.f }, peakGainInDecibels0{ -1.1f }, peakQuality0{ 0.19f };
-    float peakFreq1{ 51.f }, peakGainInDecibels1{ 0.1f }, peakQuality1{ 0.24f };
-    float highCutFreq{ 100.f };
-    float saturationAmount{ 0.f };
-    bool highCutEnabled { true };
-    bool limiterEnabled { false };
-    bool normalizationEnabled { true };
-	float subEqualizer{ 1.f };
+    float inputGainInDecibels{ 0.f };
+    float outputGainInDecibels{ 0.f };
+    float subEqualizer{ 1.f };
+    float crunchAmount{ 0.f };
+    bool highCutEnabled{ true };
+    bool normalizationEnabled{ true };
+    bool limiterEnabled{ false };
 };
 
 ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
@@ -32,41 +29,6 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 class Subbass_LUFSEqualizerAudioProcessor  : public juce::AudioProcessor
 {
 public:
-    float compressionAttackCoeff = 0.0f;
-    float compressionReleaseCoeff = 0.0f;
-    int compressionHoldSamples = 0;
-    int compressionHoldCounter = 0;
-    float compressionEnv = 0.0f;
-
-    //float sampleRate = 44100.0f;
-
-    float env = 0.0f;
-    float gainSmoothed = 1.0f;
-
-    // coefficients
-    float attackCoeff = 0.0f;
-    float releaseCoeff = 0.0f;
-
-    float compressionGainSmoothed = 1.0f;
-
-    // hold (sustain)
-    int holdSamples = 0;
-    int holdCounter = 0;
-
-    // input gain
-    float inputGain = 1.0f;
-
-    juce::AudioBuffer<float> lookaheadBuffer;
-    int lookaheadSamples = 0;
-    juce::AudioBuffer<float> combinedBuffer;
-
-    float limiterGainSmoothed = 1.0f;
-
-    float inputRampGain = 0.0f;
-    bool wasPlaying = false;
-
-
-    
 
     //==============================================================================
     Subbass_LUFSEqualizerAudioProcessor();
@@ -109,11 +71,31 @@ public:
 	juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout()};
 
 private:
+    // Hardcoded EQ constants
+    static constexpr float LOW_SHELF_FREQ = 30.f;
+    static constexpr float LOW_SHELF_GAIN = 15.2f;
+    static constexpr float LOW_SHELF_QUALITY = 0.66f;
 
-    // Crossover filters for saturation
-    
+    static constexpr float PEAK0_FREQ = 51.f;
+    static constexpr float PEAK0_GAIN = -0.1f;
+    static constexpr float PEAK0_QUALITY = 0.24f;
 
-    float smoothedGain = 1.0f;
+    static constexpr float PEAK1_FREQ = 93.f;
+    static constexpr float PEAK1_GAIN = -0.8f;
+    static constexpr float PEAK1_QUALITY = 0.15f;
+
+    static constexpr float HIGH_CUT_FREQ = 100.f;
+    static constexpr float SOFT_CEILING_DB = -0.5f;
+    static constexpr float HARD_CEILING_DB = -0.01f;
+    static constexpr float SATURATION_DRIVE = 5.0f;
+    static constexpr float LOOKAHEAD_MS = 5.0f;
+    static constexpr float NORMALIZATION_CEILING_DB = -12.0f;
+
+    juce::AudioBuffer<float> lookaheadBuffer;
+    int lookaheadSamples = 0;
+    juce::AudioBuffer<float> combinedBuffer;
+
+    float limiterGainSmoothed = 1.0f;
 
 	using Filter = juce::dsp::IIR::Filter<float>;
 
@@ -132,7 +114,7 @@ private:
 	};
 
 	void applyLookaheadLimiter(juce::AudioBuffer<float>& buffer);
-    void applyCompressionCurve(juce::AudioBuffer<float>& buffer);
+    void applyEqualizationChain(juce::AudioBuffer<float>& buffer);
     void applySaturation(juce::AudioBuffer<float>& buffer);
     void applyLimiter(juce::AudioBuffer<float>& buffer);
 
