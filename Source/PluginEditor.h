@@ -38,17 +38,30 @@ private:
     Subbass_LUFSEqualizerAudioProcessor& audioProcessor;
 
     juce::ToggleButton highCutButton;
+    juce::ToggleButton compressorButton;
+    juce::ToggleButton saturationButton;
+    juce::ToggleButton normalizeButton;
+
     CustomRotarySlider subBassEqualizerSlider;
+    CustomRotarySlider saturationSlider;
+    CustomRotarySlider inputGainSlider;
+    CustomRotarySlider outputGainSlider;
 
     using APVTS = juce::AudioProcessorValueTreeState;
     using Attachment = APVTS::SliderAttachment;
 
     Attachment subBassEqualizerAttachment;
+    Attachment saturationSliderAttachment;
+    Attachment inputGainSliderAttachment;
+    Attachment outputGainSliderAttachment;
 
     std::vector<juce::Component*> getComps();
 
 
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> highCutAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> compressorButtonAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> saturationButtonAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> normalizeButtonAttachment;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessorEditor)
 };
