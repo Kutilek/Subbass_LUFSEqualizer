@@ -17,7 +17,7 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
 	inputGainSliderAttachment(audioProcessor.apvts, "Input Gain", inputGainSlider),
     outputGainSliderAttachment(audioProcessor.apvts, "Output Gain", outputGainSlider),
 	highCutButtonAttachment(audioProcessor.apvts, "HighCut Enabled", highCutButton),
-	saturationButtonAttachment(audioProcessor.apvts, "Saturation Enabled", saturationButton),
+    limiterButtonAttachment(audioProcessor.apvts, "Limiter Enabled", limiterButton),
 	normalizeButtonAttachment(audioProcessor.apvts, "Normalize Enabled", normalizeButton)
 {
     // Make sure that before the constructor has finished, you've set the
@@ -28,14 +28,15 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
     addAndMakeVisible(subBassEqualizerSlider);
     addAndMakeVisible(saturationSlider); 
     addAndMakeVisible(outputGainSlider);
+    addAndMakeVisible(limiterButton);
 
     addAndMakeVisible(inputGainLabel);
     addAndMakeVisible(subBassEqualizerLabel);
     addAndMakeVisible(saturationLabel);
     addAndMakeVisible(outputGainLabel);
     
-    // This button to be deleted later
-    addAndMakeVisible(saturationButton);
+
+    
     
     setSize(600, 300);
 
@@ -57,9 +58,9 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
             highCutButton.updateToggleColour();
         };
 
-    saturationButton.onClick = [this]()
+    limiterButton.onClick = [this]()
         {
-            saturationButton.updateToggleColour();
+            limiterButton.updateToggleColour();
         };
 
     normalizeButton.onClick = [this]()
@@ -68,7 +69,7 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
         };
 
     highCutButton.updateToggleColour();
-    saturationButton.updateToggleColour();
+    limiterButton.updateToggleColour();
     normalizeButton.updateToggleColour();
 
     // Configure labels (they will be shown under knobs)
@@ -127,7 +128,7 @@ void Subbass_LUFSEqualizerAudioProcessorEditor::resized()
     highCutButton.setBounds(t1);
 
     auto t2 = topArea.removeFromLeft(togW).reduced(6);
-    saturationButton.setBounds(t2);
+    limiterButton.setBounds(t2);
 
     // Slider row: InputGain (small slider), SubBass (large slider), Saturation (large slider), OutputGain (small slider)
     auto sliderRow = area.removeFromTop((int)(totalH * 0.58f)).reduced(8);

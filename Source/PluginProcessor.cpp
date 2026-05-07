@@ -150,9 +150,6 @@ void Subbass_LUFSEqualizerAudioProcessor::prepareToPlay (double sampleRate, int 
     float attackMs = 2.0f;
     float releaseMs = 85.0f;
     float sustainMs = 53.0f;
-
-
-
 }
 
 void Subbass_LUFSEqualizerAudioProcessor::releaseResources()
@@ -232,36 +229,50 @@ void Subbass_LUFSEqualizerAudioProcessor::applyLookaheadLimiter(juce::AudioBuffe
         lookaheadBuffer.copyFrom(ch, 0, combinedBuffer, ch, numSamples, lookaheadSamples);
 }
 
-void Subbass_LUFSEqualizerAudioProcessor::applySaturationAndLimit(juce::AudioBuffer<float>& buffer)
+void Subbass_LUFSEqualizerAudioProcessor::applySaturation(juce::AudioBuffer<float>& buffer)
 {
     const int numChannels = buffer.getNumChannels();
     const int numSamples = buffer.getNumSamples();
-
     auto chainSettings = getChainSettings(apvts);
-    const float satAmount = chainSettings.saturationAmount;
-    const float drive = 1.0f + satAmount * 2.0f;
+
+    const float gainAmount = juce::Decibels::decibelsToGain(chainSettings.saturationAmount);
+    const float softCeiling = juce::Decibels::decibelsToGain(-0.1f);
     const float hardCeiling = juce::Decibels::decibelsToGain(-0.1f);
+    const float fixedDrive = 5.0f;
 
     for (int ch = 0; ch < numChannels; ++ch)
     {
-        auto* data = buffer.getWritePointer(ch);
+        float* data = buffer.getWritePointer(ch);
         for (int i = 0; i < numSamples; ++i)
         {
-            float sample = data[i];
+            data[i] *= gainAmount;
 
-            if (chainSettings.saturationEnabled && satAmount > 0.0f)
+            if (std::abs(data[i]) > softCeiling)
             {
-                // Apply drive and soft clip
-                float driven = sample * drive;
-                float saturated = std::tanh(driven) / std::tanh(drive);
-
-                // Blend dry and saturated
-                float blend = satAmount / 10.0f;
-                sample = sample * (1.0f - blend) + saturated * blend;
+                float saturated = std::tanh(data[i] * fixedDrive) / std::tanh(fixedDrive);
+                float blend = chainSettings.saturationAmount / 10.0f;
+                data[i] = data[i] * (1.0f - blend) + saturated * blend;
             }
 
-            // Always apply hard ceiling regardless of saturation
-            data[i] = juce::jlimit(-hardCeiling, hardCeiling, sample);
+            data[i] = juce::jlimit(-hardCeiling, hardCeiling, data[i]);
+        }
+    }
+}
+
+void Subbass_LUFSEqualizerAudioProcessor::applyLimiter(juce::AudioBuffer<float>& buffer)
+{
+    const float ceiling = juce::Decibels::decibelsToGain(-0.1f);
+
+    const int numChannels = buffer.getNumChannels();
+    const int numSamples = buffer.getNumSamples();
+
+    for (int ch = 0; ch < numChannels; ++ch)
+    {
+        float* data = buffer.getWritePointer(ch);
+
+        for (int i = 0; i < numSamples; ++i)
+        {
+            data[i] = juce::jlimit(-ceiling, ceiling, data[i]);
         }
     }
 }
@@ -374,8 +385,11 @@ void Subbass_LUFSEqualizerAudioProcessor::processBlock (juce::AudioBuffer<float>
 
 
     // 4. Saturation
-    if (chainSettings.saturationEnabled)
-        applySaturationAndLimit(buffer);
+    if (chainSettings.saturationAmount > 0.01f)
+        applySaturation(buffer);
+
+    if (chainSettings.limiterEnabled)
+		applyLimiter(buffer);
 
     // 5. Output gain
     float knobOutputGain = juce::Decibels::decibelsToGain(chainSettings.outputGainInDecibels);
@@ -435,7 +449,7 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts)
     settings.highCutEnabled = apvts.getRawParameterValue("HighCut Enabled")->load();
 
     settings.subEqualizer = apvts.getRawParameterValue("Sub Equalizer")->load();
-    settings.saturationEnabled = apvts.getRawParameterValue("Saturation Enabled")->load();
+    settings.limiterEnabled = apvts.getRawParameterValue("Limiter Enabled")->load();
     settings.saturationAmount = apvts.getRawParameterValue("Saturation Amount")->load();
     settings.normalizationEnabled = apvts.getRawParameterValue("Normalize Enabled")->load();
 
@@ -463,7 +477,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout Subbass_LUFSEqualizerAudioPr
 
     layout.add(std::make_unique<juce::AudioParameterFloat>("HighCut Freq", "HighCut Freq", juce::NormalisableRange<float>(100.f, 20000.f, 1.f, 0.5f), 100.f));
     layout.add(std::make_unique<juce::AudioParameterBool>("HighCut Enabled", "HighCut Enabled", true));
-    layout.add(std::make_unique<juce::AudioParameterBool>("Saturation Enabled", "Saturation Enabled", false));
+    layout.add(std::make_unique<juce::AudioParameterBool>("Limiter Enabled", "Limiter Enabled", false));
     layout.add(std::make_unique<juce::AudioParameterFloat>("Saturation Amount", "Saturation Amount", juce::NormalisableRange<float>(0.0f, 10.0f), 2.f));
     layout.add(std::make_unique<juce::AudioParameterBool>("Normalize Enabled", "Normalize Enabled", true));
 

@@ -18,7 +18,8 @@ struct CustomRotarySlider : juce::Slider
 {
     CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox)
     {
-
+        setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::white);
+        setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::darkgrey);
     }
 };
 
@@ -88,11 +89,11 @@ private:
 	using ButtonAttachment = APVTS::ButtonAttachment;
 
     CustomToggleButton highCutButton{ "High Cut" };
-    CustomToggleButton saturationButton{ "Saturate" };
+    CustomToggleButton limiterButton{ "Limit" };
     CustomToggleButton normalizeButton{ "Normalize" };
 
     ButtonAttachment highCutButtonAttachment;
-    ButtonAttachment saturationButtonAttachment;
+    ButtonAttachment limiterButtonAttachment;
     ButtonAttachment normalizeButtonAttachment;
 
     // Labels
@@ -100,9 +101,6 @@ private:
     juce::Label saturationLabel;
     juce::Label inputGainLabel;
     juce::Label outputGainLabel;
-    juce::Label highCutLabel;
-    juce::Label saturationButtonLabel;
-    juce::Label normalizeLabel;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessorEditor)
 };

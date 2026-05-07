@@ -18,9 +18,9 @@ struct ChainSettings
     float peakFreq1{ 51.f }, peakGainInDecibels1{ 0.1f }, peakQuality1{ 0.24f };
     float highCutFreq{ 100.f };
     float saturationAmount{ 0.f };
-    bool highCutEnabled{ true };
-    bool saturationEnabled{ false };
-    bool normalizationEnabled{ true };
+    bool highCutEnabled { true };
+    bool limiterEnabled { false };
+    bool normalizationEnabled { true };
 	float subEqualizer{ 1.f };
 };
 
@@ -37,9 +37,6 @@ public:
     int compressionHoldSamples = 0;
     int compressionHoldCounter = 0;
     float compressionEnv = 0.0f;
-
-    juce::AudioBuffer<float> lowBandBuffer;
-    juce::AudioBuffer<float> highBandBuffer;
 
     //float sampleRate = 44100.0f;
 
@@ -113,6 +110,9 @@ public:
 
 private:
 
+    // Crossover filters for saturation
+    
+
     float smoothedGain = 1.0f;
 
 	using Filter = juce::dsp::IIR::Filter<float>;
@@ -131,14 +131,10 @@ private:
 		HighCut,
 	};
 
-    using CrossoverFilter = juce::dsp::ProcessorChain<Filter, Filter>;
-
-    CrossoverFilter lowPassLeft, lowPassRight;
-    CrossoverFilter highPassLeft, highPassRight;
-
 	void applyLookaheadLimiter(juce::AudioBuffer<float>& buffer);
     void applyCompressionCurve(juce::AudioBuffer<float>& buffer);
-    void applySaturationAndLimit(juce::AudioBuffer<float>& buffer);
+    void applySaturation(juce::AudioBuffer<float>& buffer);
+    void applyLimiter(juce::AudioBuffer<float>& buffer);
 
 	//==============================================================================
 	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessor)
