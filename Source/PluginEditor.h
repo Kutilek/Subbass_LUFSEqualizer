@@ -16,10 +16,15 @@
 */
 struct CustomRotarySlider : juce::Slider
 {
-    CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::NoTextBox)
+    CustomRotarySlider() : juce::Slider(juce::Slider::SliderStyle::RotaryHorizontalVerticalDrag, juce::Slider::TextEntryBoxPosition::TextBoxBelow)
     {
         setColour(juce::Slider::rotarySliderFillColourId, juce::Colours::white);
         setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::darkgrey);
+    }
+
+    juce::String getTextFromValue(double value) override
+    {
+        return juce::String(value, 1); // 1 = number of decimal places
     }
 };
 
@@ -55,14 +60,14 @@ struct CustomToggleButton : juce::TextButton
     }
 };
 
-class Subbass_LUFSEqualizerAudioProcessorEditor  : public juce::AudioProcessorEditor
+class Subbass_LUFSEqualizerAudioProcessorEditor : public juce::AudioProcessorEditor
 {
 public:
-    Subbass_LUFSEqualizerAudioProcessorEditor (Subbass_LUFSEqualizerAudioProcessor&);
+    Subbass_LUFSEqualizerAudioProcessorEditor(Subbass_LUFSEqualizerAudioProcessor&);
     ~Subbass_LUFSEqualizerAudioProcessorEditor() override;
 
     //==============================================================================
-    void paint (juce::Graphics&) override;
+    void paint(juce::Graphics&) override;
     void resized() override;
 
 private:
@@ -71,7 +76,7 @@ private:
     Subbass_LUFSEqualizerAudioProcessor& audioProcessor;
 
     using APVTS = juce::AudioProcessorValueTreeState;
-    
+
     // Sliders
     using SliderAttachment = APVTS::SliderAttachment;
 
@@ -86,7 +91,7 @@ private:
     SliderAttachment outputGainSliderAttachment;
 
     // Toggles
-	using ButtonAttachment = APVTS::ButtonAttachment;
+    using ButtonAttachment = APVTS::ButtonAttachment;
 
     CustomToggleButton highCutButton{ "High Cut" };
     CustomToggleButton limiterButton{ "Limit" };
@@ -102,5 +107,5 @@ private:
     juce::Label inputGainLabel;
     juce::Label outputGainLabel;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (Subbass_LUFSEqualizerAudioProcessorEditor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(Subbass_LUFSEqualizerAudioProcessorEditor)
 };

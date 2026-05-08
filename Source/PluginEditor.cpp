@@ -10,15 +10,15 @@
 #include "PluginEditor.h"
 
 //==============================================================================
-Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEditor (Subbass_LUFSEqualizerAudioProcessor& p)
-	: AudioProcessorEditor(&p), audioProcessor(p),
+Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEditor(Subbass_LUFSEqualizerAudioProcessor& p)
+    : AudioProcessorEditor(&p), audioProcessor(p),
     subBassEqualizerAttachment(audioProcessor.apvts, "Sub Equalizer", subBassEqualizerSlider),
     crunchSliderAttachment(audioProcessor.apvts, "Crunch Amount", crunchSlider),
-	inputGainSliderAttachment(audioProcessor.apvts, "Input Gain", inputGainSlider),
+    inputGainSliderAttachment(audioProcessor.apvts, "Input Gain", inputGainSlider),
     outputGainSliderAttachment(audioProcessor.apvts, "Output Gain", outputGainSlider),
-	highCutButtonAttachment(audioProcessor.apvts, "HighCut Enabled", highCutButton),
+    highCutButtonAttachment(audioProcessor.apvts, "HighCut Enabled", highCutButton),
     limiterButtonAttachment(audioProcessor.apvts, "Limiter Enabled", limiterButton),
-	normalizeButtonAttachment(audioProcessor.apvts, "Normalize Enabled", normalizeButton)
+    normalizeButtonAttachment(audioProcessor.apvts, "Normalize Enabled", normalizeButton)
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
@@ -34,7 +34,7 @@ Subbass_LUFSEqualizerAudioProcessorEditor::Subbass_LUFSEqualizerAudioProcessorEd
     addAndMakeVisible(subBassEqualizerLabel);
     addAndMakeVisible(crunchLabel);
     addAndMakeVisible(outputGainLabel);
-    
+
     setSize(600, 300);
 
     // Initialize labels
@@ -81,13 +81,13 @@ Subbass_LUFSEqualizerAudioProcessorEditor::~Subbass_LUFSEqualizerAudioProcessorE
 }
 
 //==============================================================================
-void Subbass_LUFSEqualizerAudioProcessorEditor::paint (juce::Graphics& g)
+void Subbass_LUFSEqualizerAudioProcessorEditor::paint(juce::Graphics& g)
 {
     // Background gradient
     auto bounds = getLocalBounds().toFloat();
     juce::Colour top = juce::Colour::fromRGB(28, 30, 34);
     juce::Colour bottom = juce::Colour::fromRGB(18, 20, 24);
-    juce::ColourGradient bgGradient (top, bounds.getX(), bounds.getY(), bottom, bounds.getX(), bounds.getBottom(), false);
+    juce::ColourGradient bgGradient(top, bounds.getX(), bounds.getY(), bottom, bounds.getX(), bounds.getBottom(), false);
     g.setGradientFill(bgGradient);
     g.fillRect(bounds);
 
@@ -98,7 +98,7 @@ void Subbass_LUFSEqualizerAudioProcessorEditor::paint (juce::Graphics& g)
     // Title
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.setFont(juce::Font(18.0f, juce::Font::bold));
-    g.drawText("Subbass Equalizer", 12, 8, getWidth()-24, 28, juce::Justification::centredLeft);
+    g.drawText("Subbass Equalizer", 12, 8, getWidth() - 24, 28, juce::Justification::centredLeft);
 }
 
 void Subbass_LUFSEqualizerAudioProcessorEditor::resized()
@@ -156,7 +156,7 @@ void Subbass_LUFSEqualizerAudioProcessorEditor::resized()
     outputGainLabel.setBounds(r_out.getX(), r_out.getBottom() + 4, r_out.getWidth(), labelH);
 
     // If any component is too small, ensure minimum sizes
-    auto ensureMin = [&](juce::Component& c, int minW, int minH){ auto b = c.getBounds(); if (b.getWidth() < minW) b.setWidth(minW); if (b.getHeight() < minH) b.setHeight(minH); c.setBounds(b); };
+    auto ensureMin = [&](juce::Component& c, int minW, int minH) { auto b = c.getBounds(); if (b.getWidth() < minW) b.setWidth(minW); if (b.getHeight() < minH) b.setHeight(minH); c.setBounds(b); };
     ensureMin(inputGainSlider, 40, 40);
     ensureMin(outputGainSlider, 40, 40);
     ensureMin(subBassEqualizerSlider, 80, 80);

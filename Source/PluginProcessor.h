@@ -10,6 +10,7 @@
 
 #include <JuceHeader.h>
 
+// EQ chain settings struct for input
 struct ChainSettings
 {
     float inputGainInDecibels{ 0.f };
@@ -29,7 +30,6 @@ ChainSettings getChainSettings(juce::AudioProcessorValueTreeState& apvts);
 class Subbass_LUFSEqualizerAudioProcessor  : public juce::AudioProcessor
 {
 public:
-
     //==============================================================================
     Subbass_LUFSEqualizerAudioProcessor();
     ~Subbass_LUFSEqualizerAudioProcessor() override;
@@ -67,11 +67,12 @@ public:
     void getStateInformation (juce::MemoryBlock& destData) override;
     void setStateInformation (const void* data, int sizeInBytes) override;
 
+	// Input parameters
 	static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
 	juce::AudioProcessorValueTreeState apvts{ *this, nullptr, "Parameters", createParameterLayout()};
 
 private:
-    // Hardcoded EQ constants
+    // Hardcoded constants
     static constexpr float LOW_SHELF_FREQ = 30.f;
     static constexpr float LOW_SHELF_GAIN = 15.2f;
     static constexpr float LOW_SHELF_QUALITY = 0.66f;
@@ -91,12 +92,13 @@ private:
     static constexpr float LOOKAHEAD_MS = 5.0f;
     static constexpr float NORMALIZATION_CEILING_DB = -12.0f;
 
+	//Lookahead limiter variables
     juce::AudioBuffer<float> lookaheadBuffer;
     int lookaheadSamples = 0;
     juce::AudioBuffer<float> combinedBuffer;
-
     float limiterGainSmoothed = 1.0f;
 
+	// EQ Filters and DSP chain
 	using Filter = juce::dsp::IIR::Filter<float>;
 
 	using CutFilter = juce::dsp::ProcessorChain<Filter, Filter, Filter, Filter>;
@@ -113,8 +115,10 @@ private:
 		HighCut,
 	};
 
+    // Declaration of functions
 	void applyLookaheadLimiter(juce::AudioBuffer<float>& buffer);
-    void applyEqualizationChain(juce::AudioBuffer<float>& buffer);
+    void applyEqualizationChain(juce::AudioBuffer<float>& buffer, const ChainSettings& chainSettings);
+    void updateEQCoefficients(const ChainSettings& chainSettings);
     void applySaturation(juce::AudioBuffer<float>& buffer);
     void applyLimiter(juce::AudioBuffer<float>& buffer);
 
